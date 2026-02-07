@@ -8,6 +8,17 @@ user-invocable: true
 
 Track TV series and movies. Get notified about new episodes, date changes, and streaming availability.
 
+## Important: use tools only
+
+**Always use the TV Watcher tools** for any watchlist, series, or movie operations. Do not:
+
+- Write custom Node.js or other scripts that import `better-sqlite3` or access the database directly
+- Use the `exec` tool to run code that talks to the watchers DB
+
+The database lives inside the plugin. Scripts run via `exec` execute in an isolated environment (e.g. `/tmp/`) where npm packages like `better-sqlite3` are not installed, so such scripts will fail with `ERR_MODULE_NOT_FOUND`.
+
+For adding, searching, removing, or checking shows, use: `watch_add`, `watch_search`, `watch_remove`, `watch_list`, `watch_status`, `watch_check`, etc.
+
 ## Tools
 
 | Tool | What it does |
