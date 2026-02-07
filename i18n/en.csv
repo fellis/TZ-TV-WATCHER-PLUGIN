@@ -1,0 +1,10 @@
+key,value
+new_episode_title,"{title} S{season}E{episode} - {episodeTitle}"
+released_at,Released
+source_label,Source
+watch_added,Added to watchlist
+date_changed_title,Date changed
+was,was
+became,became
+available_on_platform,"{title} now on {platform}"
+available_from,Available from

@@ -1,0 +1,32 @@
+{
+  "id": "tv-watcher",
+  "name": "TV Watcher",
+  "description": "Track TV series and movies, get notifications about new episodes",
+  "version": "0.1.0",
+  "entry": "dist/index.js",
+  "configSchema": {
+    "targets": {
+      "type": "array",
+      "description": "Notification targets (channel, chatId/channelId/to)",
+      "items": { "type": "object" },
+      "default": []
+    },
+    "timezone": { "type": "string", "default": "Europe/Kyiv" },
+    "locale": { "type": "string", "default": "auto" },
+    "quietHours": {
+      "type": "object",
+      "properties": { "start": { "type": "string" }, "end": { "type": "string" } },
+      "default": { "start": "23:00", "end": "09:00" }
+    },
+    "checkInterval": { "type": "string", "default": "0 */6 * * *" },
+    "deliverAt": { "type": ["string", "null"], "default": "09:05" },
+    "dbPath": { "type": ["string", "null"], "default": null },
+    "translation": {
+      "type": "object",
+      "properties": {
+        "defaultModel": { "type": "string", "default": "gpt-4o-mini" },
+        "modelMap": { "type": "object" }
+      }
+    }
+  }
+}

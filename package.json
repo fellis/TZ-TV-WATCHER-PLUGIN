@@ -1,0 +1,23 @@
+{
+  "name": "@openclaw/tv-watcher",
+  "version": "0.1.0",
+  "description": "TV Watcher plugin for OpenClaw - track series and movies, notifications",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "tsc",
+    "prepare": "npm run build"
+  },
+  "keywords": ["openclaw", "moltbot", "tv", "series", "movies"],
+  "license": "MIT",
+  "dependencies": {
+    "better-sqlite3": "^11.6.0"
+  },
+  "devDependencies": {
+    "@types/better-sqlite3": "^7.6.11",
+    "typescript": "^5.7.2"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}
