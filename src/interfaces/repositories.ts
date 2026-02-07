@@ -38,6 +38,7 @@ export interface EpisodeRecord {
 
 export interface IEpisodeRepo {
   upsert(record: Omit<EpisodeRecord, 'id' | 'fetchedAt'>): number;
+  getById(id: number): EpisodeRecord | null;
   getByWatchlist(watchlistId: number): EpisodeRecord[];
   getByCanonicalKey(watchlistId: number, canonicalKey: string): EpisodeRecord | null;
 }
@@ -52,12 +53,32 @@ export interface EventRecord {
   createdAt: string;
   status: 'pending' | 'queued' | 'delivered' | 'failed';
   deliveredAt?: string;
+  retryCount?: number;
 }
 
 export interface IEventRepo {
   add(record: Omit<EventRecord, 'id'>): number;
+  getById(id: number): EventRecord | null;
   getPendingOrQueued(): EventRecord[];
+  getFailedForRetry(maxRetries: number): EventRecord[];
   updateStatus(id: number, status: EventRecord['status'], deliveredAt?: string): void;
+  incrementRetry(id: number): void;
+}
+
+export interface MovieReleaseRecord {
+  id: number;
+  watchlistId: number;
+  canonicalKey: string;
+  releaseDate: string;
+  platformId: number | null;
+  status: string;
+  fetchedAt: string;
+}
+
+export interface IMovieReleaseRepo {
+  upsert(record: Omit<MovieReleaseRecord, 'id' | 'fetchedAt'>): number;
+  getByWatchlist(watchlistId: number): MovieReleaseRecord[];
+  getByCanonicalKey(watchlistId: number, canonicalKey: string): MovieReleaseRecord | null;
 }
 
 export interface ISettingsRepo {

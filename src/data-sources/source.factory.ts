@@ -4,19 +4,28 @@
 
 import type { IDataSource } from '../interfaces/data-source';
 import { TVMazeSource } from './tvmaze.source';
-
-const SOURCES: Record<string, () => IDataSource> = {
-  tvmaze: () => new TVMazeSource(),
-};
+import { TMDBSource } from './tmdb.source';
+import { OMDbSource } from './omdb.source';
+import { TraktSource } from './trakt.source';
 
 export class DataSourceFactory {
-  static get(sourceId: string, _apiKey?: string): IDataSource {
-    const factory = SOURCES[sourceId.toLowerCase()];
-    if (!factory) throw new Error(`Unknown source: ${sourceId}`);
-    return factory();
+  static get(sourceId: string, apiKey?: string): IDataSource {
+    const id = sourceId.toLowerCase();
+    switch (id) {
+      case 'tvmaze':
+        return new TVMazeSource();
+      case 'tmdb':
+        return new TMDBSource(apiKey ?? '');
+      case 'omdb':
+        return new OMDbSource(apiKey ?? '');
+      case 'trakt':
+        return new TraktSource(apiKey ?? '');
+      default:
+        throw new Error(`Unknown source: ${sourceId}`);
+    }
   }
 
   static getAllIds(): string[] {
-    return Object.keys(SOURCES);
+    return ['tvmaze', 'tmdb', 'omdb', 'trakt'];
   }
 }

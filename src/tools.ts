@@ -10,10 +10,11 @@ export interface Services {
   source: ISourceService;
   platform: IPlatformService;
   settings: ISettingsRepo;
+  runCheckReport?: () => Promise<{ eventsCreated: number; reportText: string; errors: string[] }>;
 }
 
 export function createTools(services: Services) {
-  const { watch, source, platform, settings } = services;
+  const { watch, source, platform, settings, runCheckReport } = services;
 
   return [
     {
@@ -135,7 +136,11 @@ export function createTools(services: Services) {
       parameters: { type: 'object', properties: {} },
       async execute() {
         const list = source.list();
-        const text = list.map((s) => `- ${s.sourceId}: ${s.enabled ? 'enabled' : 'disabled'}`).join('\n');
+        const text = list.map((s) => {
+          const status = s.enabled ? 'enabled' : 'disabled';
+          const keyHint = (s as { hasKey?: boolean }).hasKey ? ' (key set)' : '';
+          return `- ${s.sourceId}: ${status}${keyHint}`;
+        }).join('\n');
         return {
           content: [{ type: 'text' as const, text }],
         };
@@ -231,6 +236,29 @@ export function createTools(services: Services) {
         return {
           content: [{ type: 'text' as const, text: `Removed ${params.platform_id}` }],
         };
+      },
+    },
+    {
+      name: 'watch_check',
+      description:
+        'Check watchlist for new episodes, date changes, releases. Returns formatted report for delivery. Use in cron: agent calls this, returns result verbatim; cron delivers to channel.',
+      parameters: { type: 'object', properties: {} },
+      async execute() {
+        if (!runCheckReport) {
+          return { content: [{ type: 'text' as const, text: 'watch_check not available.' }] };
+        }
+        try {
+          const { eventsCreated, reportText, errors } = await runCheckReport();
+          const errSuffix = errors.length ? `\nErrors: ${errors.join('; ')}` : '';
+          const header = eventsCreated > 0 ? `Found ${eventsCreated} new event(s).\n\n` : '';
+          return {
+            content: [{ type: 'text' as const, text: header + reportText + errSuffix }],
+          };
+        } catch (e) {
+          return {
+            content: [{ type: 'text' as const, text: `Check failed: ${(e as Error).message}` }],
+          };
+        }
       },
     },
     {

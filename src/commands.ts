@@ -11,6 +11,8 @@ export interface CommandServices {
   source: ISourceService;
   platform: IPlatformService;
   settings: ISettingsRepo;
+  runCheckReport?: () => Promise<{ eventsCreated: number; reportText: string; errors: string[] }>;
+  linking?: { confirmLink: (id: number) => string; denyLink: (id: number) => string };
 }
 
 export function parseCommand(text: string): { cmd: string; args: string[] } | null {
@@ -20,7 +22,11 @@ export function parseCommand(text: string): { cmd: string; args: string[] } | nu
   }
   const parts = trimmed.split(/\s+/);
   if (parts[0] === 'watch') {
-    return { cmd: `watch_${parts[1] ?? 'list'}`, args: parts.slice(2) };
+    const sub = parts[1] ?? 'list';
+    if (sub === 'link') {
+      return { cmd: 'watch_link', args: parts.slice(2) };
+    }
+    return { cmd: `watch_${sub}`, args: parts.slice(2) };
   }
   if (parts[0] === 'source') {
     return { cmd: `source_${parts[1] ?? 'list'}`, args: parts.slice(2) };
@@ -35,7 +41,7 @@ export async function handleCommand(
   parsed: { cmd: string; args: string[] },
   services: CommandServices
 ): Promise<string> {
-  const { watch, source, platform, settings } = services;
+  const { watch, source, platform, settings, runCheckReport, linking } = services;
 
   switch (parsed.cmd) {
     case 'watch_add':
@@ -55,6 +61,25 @@ export async function handleCommand(
       if (!parsed.args[0]) return 'Usage: watch remove <id|title>';
       await watch.remove(parsed.args[0]);
       return 'Removed.';
+
+    case 'watch_check':
+      if (!runCheckReport) return 'Checker not available.';
+      try {
+        const r = await runCheckReport();
+        const errs = r.errors.length ? `\nErrors: ${r.errors.join('; ')}` : '';
+        return r.reportText + errs;
+      } catch (e) {
+        return `Check failed: ${(e as Error).message}`;
+      }
+
+    case 'watch_link':
+      if (!linking || parsed.args.length < 2) return 'Usage: watch link confirm <id> | deny <id>';
+      const action = parsed.args[0];
+      const id = parseInt(parsed.args[1], 10);
+      if (isNaN(id)) return 'Invalid id.';
+      if (action === 'confirm') return linking.confirmLink(id);
+      if (action === 'deny') return linking.denyLink(id);
+      return 'Usage: watch link confirm <id> | deny <id>';
 
     case 'watch_quiet':
       if (!parsed.args[0]) return 'Usage: watch quiet 23:00-09:00';
@@ -77,7 +102,10 @@ export async function handleCommand(
       return `Locale: ${parsed.args[0]}`;
 
     case 'source_list':
-      return source.list().map((s) => `- ${s.sourceId}: ${s.enabled ? 'on' : 'off'}`).join('\n');
+      return source.list().map((s) => {
+        const hint = (s as { hasKey?: boolean }).hasKey ? ' (key set)' : '';
+        return `- ${s.sourceId}: ${s.enabled ? 'on' : 'off'}${hint}`;
+      }).join('\n');
 
     case 'source_enable':
       if (!parsed.args[0]) return 'Usage: source enable <id>';

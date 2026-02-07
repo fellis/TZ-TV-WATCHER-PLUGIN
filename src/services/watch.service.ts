@@ -35,7 +35,9 @@ export function createWatchService(
       const dup = watchlistRepo.findDuplicate(source, queryOrId);
       if (dup) throw new Error('Already in watchlist');
 
-      const ds = DataSourceFactory.get(source);
+      const src = sourceRepo.getBySourceId(source);
+      const apiKey = src?.apiKey;
+      const ds = DataSourceFactory.get(source, apiKey);
       const results = await ds.search(queryOrId);
       if (results.length === 0) throw new Error(`Not found: ${queryOrId}`);
       const match = results.find((r) => r.source === source && (r.externalId === queryOrId || r.title.toLowerCase().includes(queryOrId.toLowerCase())))
@@ -91,14 +93,27 @@ export function createWatchService(
       };
     },
 
-    async recommend(_opts?: { genre?: string; limit?: number }): Promise<SearchResult[]> {
+    async recommend(opts?: { genre?: string; limit?: number }): Promise<SearchResult[]> {
+      const limit = opts?.limit ?? 5;
       const sources = sourceRepo.getAll().filter((s) => s.enabled);
-      const hasTmdb = sources.some((s) => s.sourceId === 'tmdb');
-      if (!hasTmdb) {
-        throw new Error('For recommendations enable TMDB: source enable tmdb');
+      const tmdb = sources.find((s) => s.sourceId === 'tmdb');
+      const trakt = sources.find((s) => s.sourceId === 'trakt');
+      if (!tmdb && !trakt) {
+        throw new Error('For recommendations enable TMDB or Trakt: source enable tmdb');
       }
-      // TMDB not implemented yet - placeholder
-      return [];
+      try {
+        if (tmdb?.enabled && tmdb.apiKey) {
+          const ds = DataSourceFactory.get('tmdb', tmdb.apiKey) as { getTrending?: (n: number) => Promise<SearchResult[]> };
+          if (ds.getTrending) return await ds.getTrending(limit);
+        }
+      } catch (_e) {
+        // fallback to trakt
+      }
+      if (trakt?.enabled && trakt.apiKey) {
+        const ds = DataSourceFactory.get('trakt', trakt.apiKey) as { getTrending?: (n: number) => Promise<SearchResult[]> };
+        if (ds.getTrending) return await ds.getTrending(limit);
+      }
+      throw new Error('TMDB and Trakt unavailable. Check API keys.');
     },
   };
 }

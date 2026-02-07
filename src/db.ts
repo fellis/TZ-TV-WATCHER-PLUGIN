@@ -30,7 +30,7 @@ function resolveDefaultPath(workspacePath?: string): string {
   return `${base}/.openclaw/watchers/watchers.db`;
 }
 
-const MIGRATIONS: Array<{ version: number; sql: string }> = [
+const MIGRATIONS: Array<{ version: number; sql?: string; run?: (db: Database.Database) => void }> = [
   {
     version: 1,
     sql: `
@@ -140,6 +140,31 @@ const MIGRATIONS: Array<{ version: number; sql: string }> = [
       INSERT OR IGNORE INTO sources (source_id, enabled, updated_at) VALUES ('trakt', 0, datetime('now'));
     `,
   },
+  {
+    version: 3,
+    sql: `
+      ALTER TABLE events ADD COLUMN retry_count INTEGER DEFAULT 0;
+    `,
+    run: (db: Database.Database) => {
+      const cols = db.prepare("PRAGMA table_info(events)").all() as Array<{ name: string }>;
+      if (!cols.some((c) => c.name === 'retry_count')) {
+        db.exec('ALTER TABLE events ADD COLUMN retry_count INTEGER DEFAULT 0');
+      }
+    },
+  },
+  {
+    version: 4,
+    sql: `
+      CREATE TABLE IF NOT EXISTS pending_links (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        source_a TEXT NOT NULL,
+        id_a TEXT NOT NULL,
+        source_b TEXT NOT NULL,
+        id_b TEXT NOT NULL,
+        created_at TEXT NOT NULL
+      );
+    `,
+  },
 ];
 
 function runMigrations(db: Database.Database): void {
@@ -153,7 +178,11 @@ function runMigrations(db: Database.Database): void {
 
   for (const m of MIGRATIONS) {
     if (m.version > currentVersion) {
-      db.exec(m.sql);
+      if (m.run) {
+        m.run(db);
+      } else if (m.sql) {
+        db.exec(m.sql);
+      }
       db.prepare('INSERT INTO _migrations (version) VALUES (?)').run(m.version);
     }
   }

@@ -9,12 +9,13 @@ import { DataSourceFactory } from '../data-sources/source.factory';
 export function createSourceService(sourceRepo: ISourceRepo): ISourceService {
   const allIds = DataSourceFactory.getAllIds();
   return {
-    list() {
+    list(maskKeys = true) {
       const rows = sourceRepo.getAll();
       const byId = new Map(rows.map((r: SourceRecord) => [r.sourceId, r]));
       return allIds.map((id) => ({
         sourceId: id,
         enabled: ((byId.get(id) as SourceRecord | undefined)?.enabled ?? (id === 'tvmaze' ? 1 : 0)) === 1,
+        hasKey: maskKeys ? !!((byId.get(id) as SourceRecord | undefined)?.apiKey) : undefined,
       }));
     },
     enable(sourceId: string) {

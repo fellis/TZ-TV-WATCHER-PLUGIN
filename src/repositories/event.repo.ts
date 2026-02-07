@@ -16,11 +16,16 @@ function rowToRecord(row: Record<string, unknown>): EventRecord {
     createdAt: row.created_at as string,
     status: row.status as EventRecord['status'],
     deliveredAt: row.delivered_at as string | undefined,
+    retryCount: (row.retry_count as number) ?? 0,
   };
 }
 
 export function createEventRepo(db: Database.Database): IEventRepo {
   return {
+    getById(id: number): EventRecord | null {
+      const row = db.prepare('SELECT * FROM events WHERE id = ?').get(id) as Record<string, unknown> | undefined;
+      return row ? rowToRecord(row) : null;
+    },
     add(record: Omit<EventRecord, 'id'>): number {
       const result = db
         .prepare(
@@ -46,12 +51,21 @@ export function createEventRepo(db: Database.Database): IEventRepo {
       ) as Record<string, unknown>[];
       return rows.map(rowToRecord);
     },
+    getFailedForRetry(maxRetries: number): EventRecord[] {
+      const rows = db
+        .prepare('SELECT * FROM events WHERE status = ? AND COALESCE(retry_count, 0) < ? ORDER BY created_at')
+        .all('failed', maxRetries) as Record<string, unknown>[];
+      return rows.map(rowToRecord);
+    },
     updateStatus(id: number, status: EventRecord['status'], deliveredAt?: string): void {
       db.prepare('UPDATE events SET status = ?, delivered_at = ? WHERE id = ?').run(
         status,
         deliveredAt ?? null,
         id
       );
+    },
+    incrementRetry(id: number): void {
+      db.prepare('UPDATE events SET retry_count = COALESCE(retry_count, 0) + 1 WHERE id = ?').run(id);
     },
   };
 }
