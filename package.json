@@ -2,14 +2,13 @@
   "name": "@openclaw/tv-watcher",
   "version": "0.1.0",
   "description": "TV Watcher plugin for OpenClaw - track series and movies, notifications",
-  "main": "dist/index.js",
-  "types": "dist/index.d.ts",
+  "main": "src/index.ts",
+  "types": "src/index.ts",
   "openclaw": {
-    "extensions": ["./dist/index.js"]
+    "extensions": ["./src/index.ts"]
   },
   "scripts": {
-    "build": "tsc",
-    "prepare": "npm run build"
+    "build": "tsc"
   },
   "keywords": ["openclaw", "moltbot", "tv", "series", "movies"],
   "license": "MIT",

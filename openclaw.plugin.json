@@ -3,7 +3,7 @@
   "name": "TV Watcher",
   "description": "Track TV series and movies, get notifications about new episodes",
   "version": "0.1.0",
-  "entry": "dist/index.js",
+  "entry": "src/index.ts",
   "skills": ["skills/tv-watcher"],
   "configSchema": {
     "type": "object",
